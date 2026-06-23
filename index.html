@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gov Document Size Guide – Dynamic System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js">
+    </script>
+    <!-- pdf-lib for PDF processing -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js">
+    </script>
+
+    <style>
+        /* ===== GLOBAL CSS ===== */
+        :root {
+            --primary: #0b4f6c;
+            --gold: #e8b931;
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
+            --step-bg: #eef2f6;
+            --step-active: var(--primary);
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --border: #334155;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            --step-bg: #1e293b;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            padding: 0;
+            transition: all 0.3s;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .main-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .logo i {
+            color: var(--gold);
+            margin-right: 8px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 5px 15px;
+        }
+        .search-box input {
+            border: none;
+            background: transparent;
+            padding: 10px 5px;
+            outline: none;
+            color: var(--text);
+            width: 200px;
+        }
+        .theme-toggle,
+        .admin-toggle {
+            background: var(--gold);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+        .admin-toggle {
+            background: var(--primary);
+            color: #fff;
+        }
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        .card i {
+            font-size: 32px;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+        .card h3 {
+            font-size: 18px;
+        }
+        .card .badge {
+            display: inline-block;
+            font-size: 11px;
+            background: var(--primary);
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-top: 5px;
+        }
+
+        /* Editor */
+        .editor-section {
+            display: none;
+            margin: 40px 0;
+            background: var(--card);
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .steps {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 30px;
+            background: var(--step-bg);
+            color: var(--text);
+            opacity: 0.6;
+            transition: 0.3s;
+        }
+        .step.active {
+            background: var(--step-active);
+            color: #fff;
+            opacity: 1;
+        }
+        .step i {
+            font-size: 18px;
+        }
+        .editor-panel {
+            display: none;
+        }
+        .editor-panel.active {
+            display: block;
+        }
+        .editor-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        .editor-canvas {
+            flex: 2;
+            min-width: 300px;
+        }
+        .canvas-wrap {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+        }
+        .canvas-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: grab;
+            touch-action: none;
+        }
+        .crop-guide {
+            position: absolute;
+            border: 3px dashed var(--gold);
+            pointer-events: none;
+            transition: all 0.2s;
+        }
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            text-align: center;
+            margin: 15px 0;
+            background: var(--bg);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .upload-area:hover {
+            border-color: var(--gold);
+            background: var(--card);
+        }
+        .upload-area i {
+            font-size: 40px;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+        .editor-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .editor-controls button {
+            background: var(--border);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .editor-controls button:hover {
+            background: var(--gold);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .editor-info {
+            flex: 1;
+            min-width: 220px;
+        }
+        .editor-info h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        .req-item {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .preview-box {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px solid var(--gold);
+            border-radius: var(--radius);
+        }
+        .preview-box img {
+            max-width: 200px;
+            border-radius: 8px;
+        }
+        .download-btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .select-group {
+            margin: 12px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .select-group label {
+            font-weight: 600;
+        }
+        .select-group select,
+        .select-group input[type="radio"] {
+            margin-right: 6px;
+        }
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .section-title {
+            margin: 40px 0 15px;
+            color: var(--primary);
+        }
+        .faq-item,
+        .update-item {
+            background: var(--card);
+            padding: 15px;
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+        }
+        .update-item {
+            border-left: 4px solid var(--gold);
+        }
+        .crop-mode-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .crop-mode-selector button {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .crop-mode-selector button.active {
+            border-color: var(--gold);
+            background: var(--gold);
+            color: #000;
+        }
+
+        /* Document upload */
+        .doc-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            text-align: center;
+            margin: 15px 0;
+            background: var(--bg);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .doc-upload-area:hover {
+            border-color: var(--gold);
+            background: var(--card);
+        }
+        .doc-upload-area i {
+            font-size: 48px;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+        .doc-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: var(--radius);
+        }
+
+        /* Admin Panel */
+        #adminApp {
+            display: none;
+            background: var(--bg);
+            min-height: 100vh;
+        }
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background: var(--primary);
+            color: #fff;
+            padding: 25px 18px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar h3 {
+            color: var(--gold);
+            margin-bottom: 30px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px 15px;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #1e3a5f;
+            color: #fff;
+        }
+        .sidebar .logout {
+            margin-top: 30px;
+            color: #f87171;
+        }
+        .admin-main {
+            flex: 1;
+            padding: 25px;
+            overflow-x: auto;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        table {
+            width: 100%;
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border-collapse: collapse;
+        }
+        th,
+        td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #f8fafc;
+        }
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-warning {
+            background: var(--gold);
+            color: #000;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 13px;
+        }
+        .btn-success {
+            background: #22c55e;
+            color: #fff;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 750px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-content input,
+        .modal-content textarea,
+        .modal-content select {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .form-row input {
+            flex: 1;
+            min-width: 100px;
+        }
+        .form-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: var(--bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .form-section h4 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 6px 0;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        #loginPage {
+            display: none;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary), #1e293b);
+            min-height: 100vh;
+        }
+        .login-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .login-box h2 {
+            color: var(--primary);
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: var(--gold);
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* ===== AD STYLES ===== */
+        .ad-container {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            background: var(--card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            min-height: 60px;
+        }
+        .ad-container iframe {
+            max-width: 100%;
+            border: none;
+        }
+        .ad-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .ad-sticky {
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+        }
+        .ad-sidebar-wrap {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            .ad-sidebar-wrap {
+                display: block;
+                width: 300px;
+                margin-left: 20px;
+                flex-shrink: 0;
+            }
+        }
+        .ad-inline {
+            margin: 30px 0;
+        }
+        .ad-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width:768px) {
+            .sidebar {
+                width: 200px;
+                padding: 15px;
+            }
+            .admin-main {
+                padding: 15px;
+            }
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+            .ad-sidebar-wrap {
+                display: none;
+            }
+        }
+        @media (max-width:500px) {
+            .admin-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            .sidebar a {
+                display: inline-block;
+                margin: 3px;
+            }
+            .service-grid {
+                grid-template-columns: 1fr;
+            }
+            .search-box input {
+                width: 120px;
+            }
+        }
+    </style>
+
+    <!-- ===== AD SCRIPTS (moved inside head for early load) ===== -->
+    <script src="https://pl29856745.effectivecpmnetwork.com/c3/63/bd/c363bd59f60a3a32e6ce48bb580c68c4.js">
+    </script>
+    <script async="async" data-cfasync="false" src="https://pl29856746.effectivecpmnetwork.com/2f685d4362ddabd00e9736b6f715cc30/invoke.js">
+    </script>
+    <script src="https://pl29856747.effectivecpmnetwork.com/73/87/f9/7387f97ad95aed1f1c219e417c5d3fba.js">
+    </script>
+    <script>
+        // atOptions for highperformanceformat ad
+        var atOptions = {
+            'key': 'bcfda53d657e1f7897ca0228cb62d3f1',
+            'format': 'iframe',
+            'height': 90,
+            'width': 728,
+            'params': {}
+        };
+    </script>
+    <script src="https://www.highperformanceformat.com/bcfda53d657e1f7897ca0228cb62d3f1/invoke.js">
+    </script>
+</head>
+
+<body>
+
+    <!-- ============================================================== -->
+    <!--                     MAIN PUBLIC SITE                           -->
+    <!-- ============================================================== -->
+    <div id="mainSite" class="main-container">
+        <header>
+            <div class="logo"><i class="fas fa-file-alt"></i> Gov Guide</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <div class="search-box">
+                    <i class="fas fa-search" style="opacity:0.5;"></i>
+                    <input type="text" id="searchBox" placeholder="Search services...">
+                </div>
+                <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+                <button class="admin-toggle" onclick="openAdmin()"><i class="fas fa-user-cog"></i> Admin</button>
+            </div>
+        </header>
+
+        <!-- ===== AD PLACEMENT 1: Top Banner ===== -->
+        <div class="ad-container">
+            <div class="ad-label">— Sponsored —</div>
+            <div id="container-2f685d4362ddabd00e9736b6f715cc30"></div>
+        </div>
+
+        <div id="servicesContainer" class="service-grid"></div>
+
+        <!-- ===== AD PLACEMENT 2: Between Services and Editor ===== -->
+        <div class="ad-container ad-inline">
+            <div class="ad-label">— Advertisement —</div>
+            <script src="https://www.highperformanceformat.com/bcfda53d657e1f7897ca0228cb62d3f1/invoke.js">
+            </script>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-section" id="editorSection">
+            <h2 id="selectedServiceName" style="color:var(--primary);">Edit Document</h2>
+            <div class="steps">
+                <div class="step active" data-step="1"><i class="fas fa-upload"></i> Upload</div>
+                <div class="step" data-step="2"><i class="fas fa-list"></i> Requirement</div>
+                <div class="step" data-step="3"><i class="fas fa-edit"></i> Editor</div>
+            </div>
+
+            <!-- Step 1: Upload -->
+            <div class="editor-panel active" id="step1">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click or drag & drop to upload</p>
+                    <small>Images: JPG, PNG, BMP (Max 10 MB) | Documents: PDF, JPG, etc.</small>
+                    <input type="file" id="fileInput" accept="*/*" style="display:none;">
+                </div>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="btn-primary" onclick="goToStep(2)">Next <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 2: Requirement & Selection -->
+            <div class="editor-panel" id="step2">
+                <div id="requirementDisplay" style="background:var(--bg); padding:15px; border-radius:var(--radius); margin-bottom:15px;">
+                    <h4>Service: <span id="reqServiceName"></span></h4>
+                    <div id="reqDetails"></div>
+                </div>
+                <div class="select-group" id="authorityGroup" style="display:none;">
+                    <label><i class="fas fa-building"></i> Authority:</label>
+                    <select id="authoritySelect"></select>
+                </div>
+                <div class="select-group">
+                    <label><i class="fas fa-tag"></i> Type:</label>
+                    <select id="typeSelect" onchange="updateCropGuide(); handleTypeChange();">
+                        <option value="photo">Photograph</option>
+                        <option value="signature">Signature</option>
+                        <option value="thumb">Thumb Impression</option>
+                        <option value="document">Document</option>
+                    </select>
+                </div>
+                <div class="select-group">
+                    <label><i class="fas fa-expand"></i> Resize:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="resizeMode" value="original"> Original</label>
+                        <label><input type="radio" name="resizeMode" value="selected" checked> Selected Area</label>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                    <button class="btn-secondary" onclick="goToStep(1)"><i class="fas fa-arrow-left"></i> Previous</button>
+                    <button class="btn-primary" onclick="goToStep(3)">Next <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 3: Editor (Image or Document) -->
+            <div class="editor-panel" id="step3">
+                <!-- Image Editor -->
+                <div id="imageEditorArea">
+                    <div class="editor-layout">
+                        <div class="editor-canvas">
+                            <div class="canvas-wrap" id="imageContainer">
+                                <img id="uploadedImage" src="" alt="Upload">
+                                <div class="crop-guide" id="cropGuide"></div>
+                            </div>
+                            <div class="crop-mode-selector">
+                                <button class="active" data-mode="preset" onclick="setCropMode('preset')">Preset Crop</button>
+                                <button data-mode="custom" onclick="setCropMode('custom')">Custom Crop</button>
+                            </div>
+                            <div class="editor-controls" style="margin-top:10px;">
+                                <button onclick="rotateImage(-90)"><i class="fas fa-undo"></i> Left</button>
+                                <button onclick="rotateImage(90)"><i class="fas fa-redo"></i> Right</button>
+                                <button onclick="resetRotation()"><i class="fas fa-sync-alt"></i> Reset</button>
+                            </div>
+                            <div class="editor-controls">
+                                <button onclick="zoomIn()"><i class="fas fa-plus"></i> Zoom</button>
+                                <button onclick="zoomOut()"><i class="fas fa-minus"></i></button>
+                                <button onclick="resetImage()"><i class="fas fa-undo"></i> Reset</button>
+                                <button class="btn-primary" onclick="cropAndResize()"><i class="fas fa-crop-alt"></i> Process</button>
+                            </div>
+                            <div class="preview-box" id="previewOutput">
+                                <h4>Preview</h4>
+                                <img id="previewImg" src="">
+                                <br><button class="download-btn" onclick="downloadImage()"><i class="fas fa-download"></i> Download</button>
+                            </div>
+                        </div>
+                        <div class="editor-info">
+                            <h3>Requirements</h3>
+                            <div id="editorReqDetails"></div>
+                            <div id="fileInfo" style="margin-top:10px; font-size:13px; opacity:0.7;"></div>
+                            <div id="cropInfo" style="margin-top:10px; font-size:13px; color:var(--gold);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Processor -->
+                <div id="documentProcessorArea" style="display:none;">
+                    <div class="doc-upload-area" id="docUploadArea">
+                        <i class="fas fa-file-pdf"></i>
+                        <p>Click or drag & drop to upload document</p>
+                        <small id="docAllowedFormats">Allowed: PDF, JPG, PNG</small>
+                        <input type="file" id="docFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none;">
+                    </div>
+                    <div id="docFileInfo" class="doc-info" style="display:none;">
+                        <p><strong>File:</strong> <span id="docFileName"></span></p>
+                        <p><strong>Size:</strong> <span id="docFileSize"></span> KB</p>
+                        <p><strong>Type:</strong> <span id="docFileType"></span></p>
+                        <div id="docValidationMsg" style="color:#22c55e; margin-top:5px;"></div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                        <button class="btn-primary" onclick="processDocument()"><i class="fas fa-cog"></i> Process Document</button>
+                        <button class="btn-secondary" onclick="clearDocument()"><i class="fas fa-times"></i> Clear</button>
+                    </div>
+                    <div class="preview-box" id="docPreviewOutput" style="display:none;">
+                        <h4>Processed Document</h4>
+                        <p id="docPreviewInfo"></p>
+                        <button class="download-btn" onclick="downloadDocument()"><i class="fas fa-download"></i> Download</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:20px;">
+                    <button class="btn-secondary" onclick="goToStep(2)"><i class="fas fa-arrow-left"></i> Previous</button>
+                    <button class="btn-secondary" onclick="closeEditor()"><i class="fas fa-times"></i> Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ & Updates -->
+        <h2 class="section-title"><i class="fas fa-question-circle" style="color:var(--gold);"></i> FAQs</h2>
+        <div id="faqContainer"></div>
+
+        <!-- ===== AD PLACEMENT 3: Between FAQ and Updates ===== -->
+        <div class="ad-container ad-inline">
+            <div class="ad-label">— Sponsored Content —</div>
+            <script src="https://pl29856745.effectivecpmnetwork.com/c3/63/bd/c363bd59f60a3a32e6ce48bb580c68c4.js">
+            </script>
+        </div>
+
+        <h2 class="section-title"><i class="fas fa-bullhorn" style="color:var(--gold);"></i> Updates</h2>
+        <div id="updatesContainer"></div>
+
+        <!-- ===== AD PLACEMENT 4: Footer ===== -->
+        <div class="ad-container ad-footer">
+            <div class="ad-label">— Advertisement —</div>
+            <script src="https://pl29856747.effectivecpmnetwork.com/73/87/f9/7387f97ad95aed1f1c219e417c5d3fba.js">
+            </script>
+        </div>
+
+        <div style="margin:40px 0; padding:20px; background:var(--card); border-radius:var(--radius); border:1px solid var(--border); font-size:14px; opacity:0.8; text-align:center;">
+            <i class="fas fa-info-circle"></i> All requirements are dynamically loaded from the database. Admin panel allows instant updates.
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!--                      ADMIN PANEL                               -->
+    <!-- ============================================================== -->
+    <div id="adminApp">
+        <div class="admin-layout">
+            <div class="sidebar">
+                <h3><i class="fas fa-gavel" style="color:var(--gold);"></i> Gov Admin</h3>
+                <a class="active" onclick="showAdminPage('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a onclick="showAdminPage('services')"><i class="fas fa-list"></i> Services</a>
+                <a onclick="showAdminPage('faq')"><i class="fas fa-question-circle"></i> FAQ</a>
+                <a onclick="showAdminPage('updates')"><i class="fas fa-bullhorn"></i> Updates</a>
+                <a onclick="showAdminPage('logs')"><i class="fas fa-history"></i> Logs</a>
+                <a class="logout" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a onclick="closeAdmin()" style="color:#94a3b8;"><i class="fas fa-arrow-left"></i> Back to Site</a>
+            </div>
+            <div class="admin-main">
+                <!-- Dashboard -->
+                <div id="page-dashboard" class="page active">
+                    <h2>Dashboard</h2>
+                    <div class="stats" id="statsContainer"></div>
+                    <h3>Recent Activity</h3>
+                    <div id="recentLogs" style="background:var(--card); padding:20px; border-radius:var(--radius);"></div>
+                </div>
+                <!-- Services -->
+                <div id="page-services" class="page">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
+                        <h2>Manage Services</h2>
+                        <button class="btn btn-primary" onclick="openServiceModal()"><i class="fas fa-plus"></i> Add Service</button>
+                    </div>
+                    <div id="servicesTableWrap"></div>
+                </div>
+                <!-- FAQ -->
+                <div id="page-faq" class="page">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
+                        <h2>Manage FAQ</h2>
+                        <button class="btn btn-primary" onclick="openFaqModal()"><i class="fas fa-plus"></i> Add FAQ</button>
+                    </div>
+                    <div id="faqTableWrap"></div>
+                </div>
+                <!-- Updates -->
+                <div id="page-updates" class="page">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
+                        <h2>Manage Updates</h2>
+                        <button class="btn btn-primary" onclick="openUpdateModal()"><i class="fas fa-plus"></i> Add Update</button>
+                    </div>
+                    <div id="updatesTableWrap"></div>
+                </div>
+                <!-- Logs -->
+                <div id="page-logs" class="page">
+                    <h2>Activity Logs</h2>
+                    <div id="logsTableWrap"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login -->
+    <div id="loginPage">
+        <div class="login-box">
+            <h2><i class="fas fa-shield-alt" style="color:var(--gold);"></i> Admin Login</h2>
+            <p>Sign in to manage content</p>
+            <form onsubmit="loginUser(); return false;">
+                <input type="email" id="loginEmail" placeholder="admin@example.com" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit"><i class="fas fa-arrow-right"></i> Login</button>
+                <div id="loginError" style="color:red; margin-top:10px;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!--                       MODALS                                   -->
+    <!-- ============================================================== -->
+
+    <!-- Service Modal -->
+    <div id="serviceModal" class="modal">
+        <div class="modal-content">
+            <h2 id="serviceModalTitle">Add Service</h2>
+            <form onsubmit="saveService(); return false;">
+                <input type="hidden" id="editServiceId">
+                <div class="form-row">
+                    <input type="text" id="s_name" placeholder="Service Name" required style="flex:2;">
+                    <input type="text" id="s_icon" placeholder="Icon (fa-id-card)" value="fa-id-card" style="flex:1;">
+                </div>
+                <input type="text" id="s_authorities" placeholder="Authorities (comma separated, e.g. UTI, NSDL)">
+                <div class="form-row">
+                    <label style="display:flex; align-items:center; gap:8px; width:100%;">
+                        <input type="checkbox" id="s_status" checked> Active
+                    </label>
+                </div>
+                <textarea id="s_instructions" placeholder="General Instructions" rows="2"></textarea>
+                <textarea id="s_notes" placeholder="Notes (internal)" rows="2"></textarea>
+
+                <!-- Processing Settings -->
+                <div class="form-section">
+                    <h4><i class="fas fa-cogs"></i> Processing Settings</h4>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="s_autoResize" checked> Auto Resize</label>
+                        <label><input type="checkbox" id="s_autoCompress" checked> Auto Compress</label>
+                        <label><input type="checkbox" id="s_autoConvert" checked> Auto Convert Format</label>
+                        <label><input type="checkbox" id="s_maintainAspect" checked> Maintain Aspect Ratio</label>
+                        <label><input type="checkbox" id="s_forceWhiteBg"> Force White Background</label>
+                    </div>
+                </div>
+
+                <!-- Photo Requirements -->
+                <div class="form-section">
+                    <h4><i class="fas fa-camera"></i> Photo Requirements</h4>
+                    <div class="form-row">
+                        <input type="number" id="s_photo_width" placeholder="Width (px)" min="1">
+                        <input type="number" id="s_photo_height" placeholder="Height (px)" min="1">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="s_photo_minKB" placeholder="Min KB" min="0" step="0.1">
+                        <input type="number" id="s_photo_maxKB" placeholder="Max KB" min="0" step="0.1">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="s_photo_minW" placeholder="Min Width (px)" min="0">
+                        <input type="number" id="s_photo_maxW" placeholder="Max Width (px)" min="0">
+                        <input type="number" id="s_photo_minH" placeholder="Min Height (px)" min="0">
+                        <input type="number" id="s_photo_maxH" placeholder="Max Height (px)" min="0">
+                    </div>
+                    <input type="text" id="s_photo_formats" placeholder="Formats (comma: JPEG,PNG)">
+                    <input type="text" id="s_photo_mimeTypes" placeholder="MIME types (comma: image/jpeg,image/png)">
+                    <input type="text" id="s_photo_bg" placeholder="Background (e.g. White, Light Blue)">
+                </div>
+
+                <!-- Signature Requirements -->
+                <div class="form-section">
+                    <h4><i class="fas fa-pen"></i> Signature Requirements</h4>
+                    <div class="form-row">
+                        <input type="number" id="s_sig_width" placeholder="Width (px)" min="1">
+                        <input type="number" id="s_sig_height" placeholder="Height (px)" min="1">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="s_sig_minKB" placeholder="Min KB" min="0" step="0.1">
+                        <input type="number" id="s_sig_maxKB" placeholder="Max KB" min="0" step="0.1">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="s_sig_minW" placeholder="Min Width" min="0">
+                        <input type="number" id="s_sig_maxW" placeholder="Max Width" min="0">
+                        <input type="number" id="s_sig_minH" placeholder="Min Height" min="0">
+                        <input type="number" id="s_sig_maxH" placeholder="Max Height" min="0">
+                    </div>
+                    <input type="text" id="s_sig_formats" placeholder="Formats (comma: JPEG,PNG)">
+                    <input type="text" id="s_sig_mimeTypes" placeholder="MIME types (comma: image/jpeg,image/png)">
+                </div>
+
+                <!-- Thumb Impression Requirements -->
+                <div class="form-section">
+                    <h4><i class="fas fa-fingerprint"></i> Thumb Impression</h4>
+                    <div class="form-row">
+                        <input type="number" id="s_thumb_width" placeholder="Width (px)" min="1">
+                        <input type="number" id="s_thumb_height" placeholder="Height (px)" min="1">
+                    </div>
+                    <input type="number" id="s_thumb_maxKB" placeholder="Max KB" min="0" step="0.1">
+                    <div class="form-row">
+                        <input type="number" id="s_thumb_minW" placeholder="Min Width" min="0">
+                        <input type="number" id="s_thumb_maxW" placeholder="Max Width" min="0">
+                        <input type="number" id="s_thumb_minH" placeholder="Min Height" min="0">
+                        <input type="number" id="s_thumb_maxH" placeholder="Max Height" min="0">
+                    </div>
+                    <input type="text" id="s_thumb_formats" placeholder="Formats (comma: JPEG,PNG)">
+                    <input type="text" id="s_thumb_mimeTypes" placeholder="MIME types (comma: image/jpeg,image/png)">
+                </div>
+
+                <!-- Document Requirements -->
+                <div class="form-section">
+                    <h4><i class="fas fa-file"></i> Document Requirements</h4>
+                    <input type="number" id="s_doc_maxSize" placeholder="Max File Size (KB)" min="0">
+                    <input type="text" id="s_doc_formats" placeholder="Formats (comma: PDF,JPG)">
+                    <div class="form-row">
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="s_doc_multiple"> Multiple upload allowed
+                        </label>
+                    </div>
+                    <input type="text" id="s_doc_instructions" placeholder="Document special instructions">
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn" onclick="closeModal('serviceModal')" style="background:#94a3b8; color:#fff;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FAQ Modal -->
+    <div id="faqModal" class="modal">
+        <div class="modal-content">
+            <h2 id="faqModalTitle">Add FAQ</h2>
+            <input type="hidden" id="editFaqId">
+            <input type="text" id="f_question" placeholder="Question" required>
+            <textarea id="f_answer" placeholder="Answer" rows="3" required></textarea>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-primary" onclick="saveFaq()">Save</button>
+                <button class="btn" onclick="closeModal('faqModal')" style="background:#94a3b8; color:#fff;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Modal -->
+    <div id="updateModal" class="modal">
+        <div class="modal-content">
+            <h2 id="updateModalTitle">Add Update</h2>
+            <input type="hidden" id="editUpdateId">
+            <input type="text" id="u_title" placeholder="Title" required>
+            <textarea id="u_description" placeholder="Description" rows="3" required></textarea>
+            <input type="date" id="u_date">
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-primary" onclick="saveUpdate()">Save</button>
+                <button class="btn" onclick="closeModal('updateModal')" style="background:#94a3b8; color:#fff;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!--                         SCRIPTS                                -->
+    <!-- ============================================================== -->
+    <script>
+        // ================================================================
+        // 1. FIREBASE CONFIG
+        // ================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7_uc2CSpNo9VUyR5nuS_j7AjYpLOYoWY",
+            authDomain: "govdacuedi.firebaseapp.com",
+            projectId: "govdacuedi",
+            storageBucket: "govdacuedi.firebasestorage.app",
+            messagingSenderId: "249838706877",
+            appId: "1:249838706877:web:ac929efc311d90953217d4",
+            measurementId: "G-SSLM05TWMD"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const ADMIN_UID = "ctf6wz3G3RRuic38v6Sz6LGgcKF2";
+
+        // ================================================================
+        // 2. DEFAULT SERVICES
+        // ================================================================
+        const DEFAULT_SERVICES = [{
+            name: "PAN Card",
+            icon: "fa-id-card",
+            authorities: ["UTI", "NSDL"],
+            status: true,
+            processing: { autoResize: true, autoCompress: true, autoConvertFormat: true, maintainAspectRatio: true,
+                forceWhiteBackground: false },
+            photo: { width: 200, height: 230, minKB: 20, maxKB: 50, minW: 180, maxW: 220, minH: 210, maxH: 250,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"], bg: "White" },
+            signature: { width: 200, height: 80, minKB: 10, maxKB: 30, minW: 180, maxW: 220, minH: 70, maxH: 90,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"] },
+            thumb: { width: 200, height: 200, maxKB: 30, minW: 180, maxW: 220, minH: 180, maxH: 220,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"] },
+            document: { maxSize: 500, formats: ["PDF", "JPG"], multiple: false, instructions: "Upload scanned copy" },
+            instructions: "White background, no shadow, face centered.",
+            notes: "Standard PAN card requirements."
+        }, {
+            name: "Voter ID",
+            icon: "fa-id-card",
+            authorities: ["ECI"],
+            status: true,
+            processing: { autoResize: true, autoCompress: true, autoConvertFormat: true, maintainAspectRatio: true,
+                forceWhiteBackground: false },
+            photo: { width: 200, height: 230, minKB: 20, maxKB: 50, minW: 180, maxW: 220, minH: 210, maxH: 250,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"], bg: "White" },
+            signature: { width: 200, height: 80, minKB: 10, maxKB: 30, minW: 180, maxW: 220, minH: 70, maxH: 90,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"] },
+            thumb: { width: 200, height: 200, maxKB: 30, minW: 180, maxW: 220, minH: 180, maxH: 220,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"] },
+            document: { maxSize: 500, formats: ["PDF", "JPG"], multiple: false, instructions: "Upload scanned copy" },
+            instructions: "White background, no shadow.",
+            notes: "Voter ID requirements."
+        }, {
+            name: "Passport",
+            icon: "fa-passport",
+            authorities: ["PSK"],
+            status: true,
+            processing: { autoResize: true, autoCompress: true, autoConvertFormat: true, maintainAspectRatio: true,
+                forceWhiteBackground: false },
+            photo: { width: 200, height: 230, minKB: 20, maxKB: 50, minW: 180, maxW: 220, minH: 210, maxH: 250,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"], bg: "White" },
+            signature: { width: 200, height: 80, minKB: 10, maxKB: 30, minW: 180, maxW: 220, minH: 70, maxH: 90,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"] },
+            thumb: { width: 200, height: 200, maxKB: 30, minW: 180, maxW: 220, minH: 180, maxH: 220,
+                formats: ["JPEG"], mimeTypes: ["image/jpeg"] },
+            document: { maxSize: 1000, formats: ["PDF", "JPG", "PNG"], multiple: true,
+            instructions: "Upload all pages" },
+            instructions: "White background, face centered, no shadow.",
+            notes: "Passport photo requirements."
+        }];
+
+        async function seedDefaultServices() {
+            const snap = await db.collection('services').limit(1).get();
+            if (snap.empty) {
+                const batch = db.batch();
+                for (const svc of DEFAULT_SERVICES) {
+                    const ref = db.collection('services').doc();
+                    batch.set(ref, svc);
+                }
+                await batch.commit();
+                console.log('Default services seeded.');
+            }
+        }
+
+        // ================================================================
+        // 3. GLOBAL STATE
+        // ================================================================
+        let allServices = [];
+        let currentService = null;
+        let scale = 1,
+            posX = 0,
+            posY = 0,
+            rotation = 0;
+        let isDragging = false,
+            startX, startY, origX, origY;
+        const img = document.getElementById('uploadedImage');
+        let downloadDataUrl = null;
+        let currentStep = 1;
+        let cropMode = 'preset';
+        let initialDistance = 0,
+            initialMidX = 0,
+            initialMidY = 0;
+        let initialScale = 1,
+            initialPosX = 0,
+            initialPosY = 0;
+        let isPinching = false;
+
+        // Document state
+        let docFile = null;
+        let processedDocData = null;
+        let processedDocName = '';
+
+        // ================================================================
+        // 4. THEME, NAVIGATION, LOGIN
+        // ================================================================
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        }
+
+        function openAdmin() {
+            if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+                document.getElementById('mainSite').style.display = 'none';
+                document.getElementById('adminApp').style.display = 'block';
+                document.getElementById('loginPage').style.display = 'none';
+                loadDashboard();
+                loadServicesTable();
+                loadFaqsTable();
+                loadUpdatesTable();
+                loadLogs();
+            } else if (auth.currentUser) {
+                alert('Unauthorized admin.');
+            } else {
+                document.getElementById('loginPage').style.display = 'flex';
+            }
+        }
+
+        function closeAdmin() {
+            document.getElementById('adminApp').style.display = 'none';
+            document.getElementById('mainSite').style.display = 'block';
+            document.getElementById('loginPage').style.display = 'none';
+        }
+
+        function showAdminPage(page) {
+            document.querySelectorAll('#adminApp .page').forEach(el => el.classList.remove('active'));
+            document.getElementById(`page-${page}`).classList.add('active');
+            document.querySelectorAll('#adminApp .sidebar a').forEach(el => el.classList.remove('active'));
+            const links = document.querySelectorAll('#adminApp .sidebar a');
+            links.forEach(link => { if (link.textContent.trim().toLowerCase().includes(page)) link.classList.add(
+                'active'); });
+            if (page === 'logs') loadLogs();
+            if (page === 'dashboard') loadDashboard();
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            try {
+                const cred = await auth.signInWithEmailAndPassword(email, pass);
+                if (cred.user.uid !== ADMIN_UID) { await auth.signOut(); throw new Error('Unauthorized.'); }
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainSite').style.display = 'none';
+                document.getElementById('adminApp').style.display = 'block';
+                await logActivity('LOGIN', { email });
+                loadDashboard();
+                loadServicesTable();
+                loadFaqsTable();
+                loadUpdatesTable();
+                loadLogs();
+                document.getElementById('loginError').textContent = '';
+            } catch (e) {
+                document.getElementById('loginError').textContent = e.message;
+            }
+        }
+
+        function logoutUser() { auth.signOut();
+            closeAdmin();
+            document.getElementById('loginPage').style.display = 'flex'; }
+
+        async function logActivity(action, details = {}) {
+            if (!auth.currentUser) return;
+            await db.collection('activityLogs').add({
+                adminId: auth.currentUser.uid,
+                adminEmail: auth.currentUser.email,
+                action,
+                details,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // ================================================================
+        // 5. MAIN SITE LOAD
+        // ================================================================
+        function loadMainServices() {
+            db.collection('services').where('status', '==', true).onSnapshot((snapshot) => {
+                allServices = [];
+                snapshot.forEach(doc => allServices.push({ id: doc.id, ...doc.data() }));
+                renderServices(allServices);
+            });
+        }
+
+        function renderServices(services) {
+            const container = document.getElementById('servicesContainer');
+            if (!services.length) { container.innerHTML = '<p>No active services.</p>'; return; }
+            container.innerHTML = services.map(s => {
+                const photoSize = s.photo && s.photo.width ? `${s.photo.width}x${s.photo.height}` : 'N/A';
+                return `<div class="card" onclick="openEditor('${s.id}')">
+                    <i class="fas ${s.icon || 'fa-id-card'}"></i>
+                    <h3>${s.name}</h3>
+                    <p style="font-size:13px; opacity:0.7;">${photoSize}</p>
+                    ${s.authorities && s.authorities.length ? `<div class="badge">${s.authorities[0]}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            const q = e.target.value.toLowerCase();
+            const filtered = allServices.filter(s => s.name.toLowerCase().includes(q));
+            renderServices(filtered);
+        });
+
+        function loadMainFaq() {
+            db.collection('faq').onSnapshot((snap) => {
+                document.getElementById('faqContainer').innerHTML = snap.docs.map(doc => `
+                        <div class="faq-item"><strong>${doc.data().question}</strong><p style="margin-top:5px; opacity:0.8;">${doc.data().answer}</p></div>
+                    `).join('');
+            });
+        }
+
+        function loadMainUpdates() {
+            db.collection('updates').orderBy('date', 'desc').onSnapshot((snap) => {
+                document.getElementById('updatesContainer').innerHTML = snap.docs.map(doc => `
+                        <div class="update-item"><strong>${doc.data().title}</strong>
+                        <small style="display:block; color:var(--gold);">${doc.data().date || ''}</small>
+                        <p style="margin-top:5px;">${doc.data().description}</p></div>
+                    `).join('');
+            });
+        }
+
+        // ================================================================
+        // 6. EDITOR
+        // ================================================================
+        function openEditor(serviceId) {
+            const s = allServices.find(x => x.id === serviceId);
+            if (!s) return;
+            currentService = s;
+            document.getElementById('selectedServiceName').textContent = s.name;
+            document.getElementById('reqServiceName').textContent = s.name;
+            document.getElementById('editorSection').style.display = 'block';
+            document.getElementById('uploadedImage').src = '';
+            document.getElementById('previewOutput').style.display = 'none';
+            resetImage();
+            setCropMode('preset');
+            const authGroup = document.getElementById('authorityGroup');
+            const authSelect = document.getElementById('authoritySelect');
+            if (s.authorities && s.authorities.length > 0) {
+                authGroup.style.display = 'block';
+                authSelect.innerHTML = s.authorities.map(a => `<option value="${a}">${a}</option>`).join('');
+            } else {
+                authGroup.style.display = 'none';
+            }
+            clearDocument();
+            document.getElementById('documentProcessorArea').style.display = 'none';
+            document.getElementById('imageEditorArea').style.display = 'block';
+            const docFormats = s.document?.formats || ['PDF', 'JPG', 'PNG'];
+            const acceptAttr = docFormats.map(f => f.toLowerCase() === 'pdf' ? '.pdf' : f.toLowerCase() === 'jpg' ?
+                '.jpg,.jpeg' : f.toLowerCase() === 'png' ? '.png' : '').join(',');
+            document.getElementById('docFileInput').setAttribute('accept', acceptAttr);
+            document.getElementById('docAllowedFormats').textContent = 'Allowed: ' + docFormats.join(', ');
+            updateRequirementDisplay(s);
+            updateCropGuide();
+            handleTypeChange();
+            goToStep(1);
+            document.getElementById('editorSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateRequirementDisplay(service) {
+            const renderReq = (obj, label) => {
+                if (!obj || (!obj.width && !obj.height && !obj.maxKB)) return `<div class="req-item">${label}: Not required</div>`;
+                let parts = [];
+                if (obj.width && obj.height) parts.push(`${obj.width}×${obj.height} px`);
+                if (obj.minKB || obj.maxKB) parts.push(`${obj.minKB || 0}-${obj.maxKB || '∞'} KB`);
+                if (obj.formats && obj.formats.length) parts.push(obj.formats.join(', '));
+                if (obj.bg) parts.push(`BG: ${obj.bg}`);
+                if (obj.minW || obj.maxW) parts.push(`W: ${obj.minW||'any'}-${obj.maxW||'any'}`);
+                if (obj.minH || obj.maxH) parts.push(`H: ${obj.minH||'any'}-${obj.maxH||'any'}`);
+                return `<div class="req-item"><strong>${label}:</strong> ${parts.join(' | ') || 'N/A'}</div>`;
+            };
+            const html = `
+                    ${renderReq(service.photo, 'Photo')}
+                    ${renderReq(service.signature, 'Signature')}
+                    ${renderReq(service.thumb, 'Thumb')}
+                    <div class="req-item"><strong>Document:</strong> ${service.document?.formats?.join(', ') || 'N/A'} | Max ${service.document?.maxSize || 'N/A'} KB</div>
+                    ${service.instructions ? `<div class="req-item"><strong>Instructions:</strong> ${service.instructions}</div>` : ''}
+                `;
+            document.getElementById('reqDetails').innerHTML = html;
+            document.getElementById('editorReqDetails').innerHTML = html;
+        }
+
+        // ================================================================
+        // 7. TYPE CHANGE HANDLER
+        // ================================================================
+        function handleTypeChange() {
+            const type = document.getElementById('typeSelect').value;
+            if (type === 'document') {
+                document.getElementById('imageEditorArea').style.display = 'none';
+                document.getElementById('documentProcessorArea').style.display = 'block';
+            } else {
+                document.getElementById('imageEditorArea').style.display = 'block';
+                document.getElementById('documentProcessorArea').style.display = 'none';
+            }
+        }
+
+        // ================================================================
+        // 8. CROP GUIDE
+        // ================================================================
+        function updateCropGuide() {
+            const type = document.getElementById('typeSelect').value;
+            if (type === 'document') return;
+            let req = null;
+            if (type === 'photo') req = currentService?.photo;
+            else if (type === 'signature') req = currentService?.signature;
+            else if (type === 'thumb') req = currentService?.thumb;
+            const guide = document.getElementById('cropGuide');
+            if (!req || !req.width || !req.height) {
+                guide.style.display = 'none';
+                document.getElementById('cropInfo').textContent = 'No preset crop available. Use Custom Crop.';
+                return;
+            }
+            guide.style.display = 'block';
+            const container = document.getElementById('imageContainer');
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            let gw, gh;
+            if (req.width > req.height) {
+                gw = cw * 0.8;
+                gh = gw * (req.height / req.width);
+            } else {
+                gh = ch * 0.8;
+                gw = gh * (req.width / req.height);
+            }
+            if (gw > cw * 0.85) { gw = cw * 0.85;
+                gh = gw * (req.height / req.width); }
+            if (gh > ch * 0.85) { gh = ch * 0.85;
+                gw = gh * (req.width / req.height); }
+            guide.style.width = gw + 'px';
+            guide.style.height = gh + 'px';
+            guide.style.top = ((ch - gh) / 2) + 'px';
+            guide.style.left = ((cw - gw) / 2) + 'px';
+            document.getElementById('cropInfo').textContent = `Preset: ${req.width}×${req.height} px (${type})`;
+        }
+
+        function setCropMode(mode) {
+            cropMode = mode;
+            document.querySelectorAll('.crop-mode-selector button').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.crop-mode-selector button[data-mode="${mode}"]`).classList.add('active');
+            const guide = document.getElementById('cropGuide');
+            if (mode === 'custom') {
+                guide.style.borderStyle = 'solid';
+                guide.style.cursor = 'move';
+                guide.style.resize = 'both';
+                guide.style.overflow = 'hidden';
+                guide.style.minWidth = '50px';
+                guide.style.minHeight = '50px';
+                guide.style.maxWidth = '90%';
+                guide.style.maxHeight = '90%';
+                document.getElementById('cropInfo').textContent = 'Custom: Drag corners to resize, drag to reposition.';
+            } else {
+                guide.style.borderStyle = 'dashed';
+                guide.style.cursor = 'default';
+                guide.style.resize = 'none';
+                guide.style.overflow = 'visible';
+                updateCropGuide();
+            }
+        }
+
+        // Guide drag
+        (function initGuideDrag() {
+            const guide = document.getElementById('cropGuide');
+            let isDraggingGuide = false,
+                startX, startY, origLeft, origTop;
+            guide.addEventListener('mousedown', function(e) {
+                if (cropMode !== 'custom') return;
+                isDraggingGuide = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = guide.getBoundingClientRect();
+                const container = document.getElementById('imageContainer');
+                const cRect = container.getBoundingClientRect();
+                origLeft = rect.left - cRect.left;
+                origTop = rect.top - cRect.top;
+                guide.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            window.addEventListener('mousemove', function(e) {
+                if (!isDraggingGuide) return;
+                const container = document.getElementById('imageContainer');
+                const cRect = container.getBoundingClientRect();
+                let newLeft = origLeft + (e.clientX - startX);
+                let newTop = origTop + (e.clientY - startY);
+                const maxX = cRect.width - guide.offsetWidth;
+                const maxY = cRect.height - guide.offsetHeight;
+                newLeft = Math.max(0, Math.min(newLeft, maxX));
+                newTop = Math.max(0, Math.min(newTop, maxY));
+                guide.style.left = newLeft + 'px';
+                guide.style.top = newTop + 'px';
+            });
+            window.addEventListener('mouseup', function() { if (isDraggingGuide) { isDraggingGuide = false;
+                    guide.style.cursor = 'move'; } });
+            guide.addEventListener('touchstart', function(e) {
+                if (cropMode !== 'custom') return;
+                const touch = e.touches[0];
+                isDraggingGuide = true;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                const rect = guide.getBoundingClientRect();
+                const container = document.getElementById('imageContainer');
+                const cRect = container.getBoundingClientRect();
+                origLeft = rect.left - cRect.left;
+                origTop = rect.top - cRect.top;
+                e.preventDefault();
+            }, { passive: false });
+            guide.addEventListener('touchmove', function(e) {
+                if (!isDraggingGuide) return;
+                const touch = e.touches[0];
+                const container = document.getElementById('imageContainer');
+                const cRect = container.getBoundingClientRect();
+                let newLeft = origLeft + (touch.clientX - startX);
+                let newTop = origTop + (touch.clientY - startY);
+                const maxX = cRect.width - guide.offsetWidth;
+                const maxY = cRect.height - guide.offsetHeight;
+                newLeft = Math.max(0, Math.min(newLeft, maxX));
+                newTop = Math.max(0, Math.min(newTop, maxY));
+                guide.style.left = newLeft + 'px';
+                guide.style.top = newTop + 'px';
+                e.preventDefault();
+            }, { passive: false });
+            guide.addEventListener('touchend', function() { isDraggingGuide = false; });
+        })();
+
+        function goToStep(step) {
+            currentStep = step;
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+            document.querySelectorAll('.editor-panel').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+            if (step === 3) {
+                updateCropGuide();
+                handleTypeChange();
+            }
+        }
+
+        function closeEditor() { document.getElementById('editorSection').style.display = 'none';
+            goToStep(1); }
+
+        // ================================================================
+        // 9. UPLOAD (Image)
+        // ================================================================
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', e => { e.preventDefault();
+            uploadArea.style.borderColor = 'var(--gold)'; });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = 'var(--border)'; });
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', function(e) { if (this.files.length) handleFile(this.files[0]); });
+
+        function handleFile(file) {
+            const type = document.getElementById('typeSelect').value;
+            if (type === 'document') {
+                handleDocFile(file);
+                return;
+            }
+            if (!file.type.startsWith('image/')) { alert('Please upload an image file.'); return; }
+            if (file.size > 10 * 1024 * 1024) { alert('Max 10 MB.'); return; }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                img.src = ev.target.result;
+                resetImage();
+                document.getElementById('previewOutput').style.display = 'none';
+                document.getElementById('fileInfo').textContent =
+                    `File: ${file.name} (${(file.size/1024).toFixed(1)} KB) | ${file.type}`;
+                goToStep(2);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ================================================================
+        // 10. IMAGE EDITOR CONTROLS
+        // ================================================================
+        function resetImage() { scale = 1;
+            posX = 0;
+            posY = 0;
+            rotation = 0;
+            updateTransform(); }
+
+        function updateTransform() { img.style.transform =
+                `translate(${posX}px, ${posY}px) scale(${scale}) rotate(${rotation}deg)`; }
+
+        function zoomIn() { scale = Math.min(scale + 0.1, 3);
+            updateTransform(); }
+
+        function zoomOut() { scale = Math.max(scale - 0.1, 0.3);
+            updateTransform(); }
+
+        function rotateImage(deg) { rotation += deg;
+            updateTransform(); }
+
+        function resetRotation() { rotation = 0;
+            updateTransform(); }
+
+        // Mouse drag
+        img.addEventListener('mousedown', function(e) {
+            if (!img.src) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            origX = posX;
+            origY = posY;
+            img.style.cursor = 'grabbing';
+        });
+        window.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            posX = origX + (e.clientX - startX);
+            posY = origY + (e.clientY - startY);
+            updateTransform();
+        });
+        window.addEventListener('mouseup', function() { isDragging = false;
+            img.style.cursor = 'grab'; });
+
+        // Touch
+        img.addEventListener('touchstart', function(e) {
+            if (!img.src) return;
+            const touches = e.touches;
+            if (touches.length === 1) {
+                isDragging = true;
+                startX = touches[0].clientX;
+                startY = touches[0].clientY;
+                origX = posX;
+                origY = posY;
+            } else if (touches.length === 2) {
+                const t1 = touches[0],
+                    t2 = touches[1];
+                initialDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                initialMidX = (t1.clientX + t2.clientX) / 2;
+                initialMidY = (t1.clientY + t2.clientY) / 2;
+                initialScale = scale;
+                initialPosX = posX;
+                initialPosY = posY;
+                isPinching = true;
+                isDragging = false;
+            }
+        }, { passive: false });
+        img.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            if (!img.src) return;
+            const touches = e.touches;
+            if (touches.length === 1 && isDragging) {
+                posX = origX + (touches[0].clientX - startX);
+                posY = origY + (touches[0].clientY - startY);
+                updateTransform();
+            } else if (touches.length === 2 && isPinching) {
+                const t1 = touches[0],
+                    t2 = touches[1];
+                const distance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                const midX = (t1.clientX + t2.clientX) / 2;
+                const midY = (t1.clientY + t2.clientY) / 2;
+                scale = Math.min(Math.max(initialScale * (distance / initialDistance), 0.3), 3);
+                posX = initialPosX + (midX - initialMidX);
+                posY = initialPosY + (midY - initialMidY);
+                updateTransform();
+            }
+        }, { passive: false });
+        img.addEventListener('touchend', function() { isDragging = false;
+            isPinching = false;
+            img.style.cursor = 'grab'; });
+        img.addEventListener('touchcancel', function() { isDragging = false;
+            isPinching = false;
+            img.style.cursor = 'grab'; });
+
+        // ================================================================
+        // 11. IMAGE PROCESSING
+        // ================================================================
+        function cropAndResize() {
+            if (!img.src || !currentService) { alert('Upload an image first.'); return; }
+            const container = document.getElementById('imageContainer');
+            const guide = document.getElementById('cropGuide');
+            const imgRect = img.getBoundingClientRect();
+            const naturalW = img.naturalWidth,
+                naturalH = img.naturalHeight;
+            const dispW = imgRect.width,
+                dispH = imgRect.height;
+            const scaleX = naturalW / dispW,
+                scaleY = naturalH / dispH;
+
+            const type = document.getElementById('typeSelect').value;
+            let req = null;
+            if (type === 'photo') req = currentService.photo;
+            else if (type === 'signature') req = currentService.signature;
+            else if (type === 'thumb') req = currentService.thumb;
+            else if (type === 'document') { alert('Use Document processor for documents.'); return; }
+
+            if (!req || (!req.width && !req.height)) {
+                alert(`No size requirements defined for ${type}. Use Custom Crop.`);
+                return;
+            }
+
+            const guideRect = guide.getBoundingClientRect();
+            const cropLeft = guideRect.left - imgRect.left;
+            const cropTop = guideRect.top - imgRect.top;
+            const cropRight = guideRect.right - imgRect.left;
+            const cropBottom = guideRect.bottom - imgRect.top;
+            let sx = cropLeft * scaleX;
+            let sy = cropTop * scaleY;
+            let sw = (cropRight - cropLeft) * scaleX;
+            let sh = (cropBottom - cropTop) * scaleY;
+            if (sw <= 0 || sh <= 0) { alert('Crop area invalid.'); return; }
+
+            const resizeMode = document.querySelector('input[name="resizeMode"]:checked').value;
+            const processing = currentService.processing || { autoResize: true, autoCompress: true,
+                autoConvertFormat: true, maintainAspectRatio: true, forceWhiteBackground: false };
+            let targetW = req.width || naturalW;
+            let targetH = req.height || naturalH;
+
+            if (!processing.autoResize) {
+                if (resizeMode === 'original') {
+                    targetW = naturalW;
+                    targetH = naturalH;
+                } else {
+                    targetW = Math.round(sw);
+                    targetH = Math.round(sh);
+                }
+            }
+
+            let finalW = targetW,
+                finalH = targetH;
+            if (processing.maintainAspectRatio && resizeMode === 'selected') {
+                const targetRatio = targetW / targetH;
+                const cropRatio = sw / sh;
+                if (cropRatio > targetRatio) {
+                    const newSw = sh * targetRatio;
+                    sx += (sw - newSw) / 2;
+                    sw = newSw;
+                } else {
+                    const newSh = sw / targetRatio;
+                    sy += (sh - newSh) / 2;
+                    sh = newSh;
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = finalW;
+            canvas.height = finalH;
+            const ctx = canvas.getContext('2d');
+
+            if (processing.forceWhiteBackground) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, finalW, finalH);
+            }
+
+            if (resizeMode === 'original') {
+                ctx.drawImage(img, 0, 0, naturalW, naturalH, 0, 0, finalW, finalH);
+            } else {
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, finalW, finalH);
+            }
+
+            let quality = 0.92;
+            let dataUrl = canvas.toDataURL('image/jpeg', quality);
+            if (processing.autoCompress && req.maxKB) {
+                let sizeKB = dataUrl.length * 3 / 4 / 1024;
+                if (sizeKB > req.maxKB) {
+                    quality = Math.max(0.1, quality * (req.maxKB / sizeKB) * 0.9);
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                }
+            }
+            if (processing.autoConvertFormat && req.formats && req.formats.length) {
+                const format = req.formats[0].toLowerCase();
+                if (format === 'png') {
+                    dataUrl = canvas.toDataURL('image/png');
+                } else if (format === 'jpeg' || format === 'jpg') {
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                }
+            }
+            downloadDataUrl = dataUrl;
+            document.getElementById('previewImg').src = dataUrl;
+            document.getElementById('previewOutput').style.display = 'block';
+
+            const finalSizeKB = (dataUrl.length * 3 / 4 / 1024);
+            document.getElementById('fileInfo').textContent += ` | Processed: ${finalSizeKB.toFixed(1)} KB`;
+            const imgObj = new Image();
+            imgObj.onload = function() {
+                const w = imgObj.width,
+                    h = imgObj.height;
+                let valid = true;
+                if (req.minW && w < req.minW) { alert(`Width ${w}px < min ${req.minW}px`);
+                    valid = false; }
+                if (req.maxW && w > req.maxW) { alert(`Width ${w}px > max ${req.maxW}px`);
+                    valid = false; }
+                if (req.minH && h < req.minH) { alert(`Height ${h}px < min ${req.minH}px`);
+                    valid = false; }
+                if (req.maxH && h > req.maxH) { alert(`Height ${h}px > max ${req.maxH}px`);
+                    valid = false; }
+                if (req.mimeTypes && req.mimeTypes.length) {
+                    const mime = dataUrl.split(',')[0].match(/:(.*?);/)[1];
+                    if (!req.mimeTypes.includes(mime)) {
+                        alert(`MIME type ${mime} not allowed. Allowed: ${req.mimeTypes.join(', ')}`);
+                        valid = false;
+                    }
+                }
+                if (!valid) {
+                    document.getElementById('previewOutput').style.display = 'none';
+                    downloadDataUrl = null;
+                }
+            };
+            imgObj.src = dataUrl;
+        }
+
+        function downloadImage() {
+            if (!downloadDataUrl) return;
+            const a = document.createElement('a');
+            const type = document.getElementById('typeSelect').value;
+            a.download = `${currentService?.name || 'file'}_${type}.jpg`;
+            a.href = downloadDataUrl;
+            a.click();
+        }
+
+        // ================================================================
+        // 12. DOCUMENT PROCESSING
+        // ================================================================
+        const docUploadArea = document.getElementById('docUploadArea');
+        const docFileInput = document.getElementById('docFileInput');
+        docUploadArea.addEventListener('click', () => docFileInput.click());
+        docUploadArea.addEventListener('dragover', e => { e.preventDefault();
+            docUploadArea.style.borderColor = 'var(--gold)'; });
+        docUploadArea.addEventListener('dragleave', () => { docUploadArea.style.borderColor = 'var(--border)'; });
+        docUploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            docUploadArea.style.borderColor = 'var(--border)';
+            if (e.dataTransfer.files.length) handleDocFile(e.dataTransfer.files[0]);
+        });
+        docFileInput.addEventListener('change', function(e) { if (this.files.length) handleDocFile(this.files[0]); });
+
+        function handleDocFile(file) {
+            const doc = currentService.document;
+            if (!doc) { alert('No document requirements defined for this service.'); return; }
+            const allowedFormats = doc.formats || ['PDF', 'JPG', 'PNG'];
+            const ext = file.name.split('.').pop().toUpperCase();
+            const mime = file.type;
+            let isAllowed = false;
+            for (let f of allowedFormats) {
+                if (f.toUpperCase() === ext) { isAllowed = true; break; }
+                if (f.toLowerCase() === 'jpg' && (mime === 'image/jpeg' || mime === 'image/jpg')) isAllowed = true;
+                if (f.toLowerCase() === 'png' && mime === 'image/png') isAllowed = true;
+                if (f.toLowerCase() === 'pdf' && mime === 'application/pdf') isAllowed = true;
+            }
+            if (!isAllowed) {
+                alert(`File format not allowed. Allowed: ${allowedFormats.join(', ')}`);
+                return;
+            }
+            if (doc.maxSize && (file.size / 1024) > doc.maxSize) {
+                alert(`File size ${(file.size/1024).toFixed(1)} KB exceeds max ${doc.maxSize} KB. Please compress.`);
+            }
+            docFile = file;
+            document.getElementById('docFileName').textContent = file.name;
+            document.getElementById('docFileSize').textContent = (file.size / 1024).toFixed(1);
+            document.getElementById('docFileType').textContent = file.type || ext;
+            document.getElementById('docFileInfo').style.display = 'block';
+            document.getElementById('docPreviewOutput').style.display = 'none';
+            processedDocData = null;
+            document.getElementById('docValidationMsg').textContent = 'File ready for processing.';
+            document.getElementById('docValidationMsg').style.color = '#22c55e';
+        }
+
+        function clearDocument() {
+            docFile = null;
+            processedDocData = null;
+            document.getElementById('docFileInfo').style.display = 'none';
+            document.getElementById('docPreviewOutput').style.display = 'none';
+            document.getElementById('docFileInput').value = '';
+            document.getElementById('docValidationMsg').textContent = '';
+            document.getElementById('docFileName').textContent = '';
+            document.getElementById('docFileSize').textContent = '';
+            document.getElementById('docFileType').textContent = '';
+        }
+
+        async function processDocument() {
+            if (!docFile) { alert('Please upload a document first.'); return; }
+            const doc = currentService.document;
+            if (!doc) { alert('No document requirements.'); return; }
+
+            const processing = currentService.processing || {};
+            const autoCompress = processing.autoCompress !== false;
+            const autoConvert = processing.autoConvertFormat !== false;
+            const maxSize = doc.maxSize || Infinity;
+
+            let fileBuffer = await docFile.arrayBuffer();
+            let processedBuffer = null;
+            let processedMime = docFile.type;
+            let fileName = docFile.name;
+
+            if (docFile.type === 'application/pdf' || docFile.name.toLowerCase().endsWith('.pdf')) {
+                try {
+                    const pdfDoc = await PDFLib.PDFDocument.load(fileBuffer, { ignoreEncryption: true });
+                    const savedBytes = await pdfDoc.save({ useObjectStreams: true });
+                    processedBuffer = savedBytes;
+                    processedMime = 'application/pdf';
+                    if (!fileName.toLowerCase().endsWith('.pdf')) fileName += '.pdf';
+                    let sizeKB = processedBuffer.byteLength / 1024;
+                    if (autoCompress && maxSize && sizeKB > maxSize) {
+                        alert(`Compressed file is still ${sizeKB.toFixed(1)} KB. Consider using external compressor.`);
+                    }
+                } catch (e) {
+                    alert('Error processing PDF: ' + e.message);
+                    return;
+                }
+            } else if (docFile.type.startsWith('image/')) {
+                if (autoConvert && doc.formats && doc.formats.map(f => f.toUpperCase()).includes('PDF')) {
+                    try {
+                        const pdfDoc = await PDFLib.PDFDocument.create();
+                        const imageBytes = await fetch(URL.createObjectURL(docFile)).then(res => res.arrayBuffer());
+                        let image;
+                        if (docFile.type === 'image/png') {
+                            image = await pdfDoc.embedPng(imageBytes);
+                        } else if (docFile.type === 'image/jpeg' || docFile.type === 'image/jpg') {
+                            image = await pdfDoc.embedJpg(imageBytes);
+                        } else {
+                            alert('Unsupported image format for conversion to PDF.');
+                            return;
+                        }
+                        const page = pdfDoc.addPage([image.width, image.height]);
+                        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+                        const savedBytes = await pdfDoc.save();
+                        processedBuffer = savedBytes;
+                        processedMime = 'application/pdf';
+                        fileName = fileName.replace(/\.[^.]+$/, '') + '.pdf';
+                    } catch (e) {
+                        alert('Error converting image to PDF: ' + e.message);
+                        return;
+                    }
+                } else {
+                    const imgObj = new Image();
+                    const url = URL.createObjectURL(docFile);
+                    await new Promise((resolve, reject) => {
+                        imgObj.onload = resolve;
+                        imgObj.onerror = reject;
+                        imgObj.src = url;
+                    });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgObj.width;
+                    canvas.height = imgObj.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(imgObj, 0, 0);
+                    let quality = 0.92;
+                    let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    let sizeKB = dataUrl.length * 3 / 4 / 1024;
+                    if (autoCompress && maxSize && sizeKB > maxSize) {
+                        quality = Math.max(0.1, quality * (maxSize / sizeKB) * 0.9);
+                        dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    }
+                    const blob = await fetch(dataUrl).then(res => res.blob());
+                    processedBuffer = await blob.arrayBuffer();
+                    processedMime = blob.type;
+                    fileName = fileName.replace(/\.[^.]+$/, '') + '.jpg';
+                }
+            } else {
+                alert('Unsupported document type. Only PDF and images are supported.');
+                return;
+            }
+
+            let finalSizeKB = processedBuffer.byteLength / 1024;
+            if (maxSize && finalSizeKB > maxSize) {
+                alert(
+                    `Processed file size (${finalSizeKB.toFixed(1)} KB) still exceeds max ${maxSize} KB. Please try a smaller file.`
+                    );
+            }
+
+            processedDocData = processedBuffer;
+            processedDocName = fileName;
+
+            document.getElementById('docPreviewInfo').textContent =
+                `Processed: ${fileName} (${finalSizeKB.toFixed(1)} KB) | Type: ${processedMime}`;
+            document.getElementById('docPreviewOutput').style.display = 'block';
+            document.getElementById('docValidationMsg').textContent = 'Processing complete. Download ready.';
+            document.getElementById('docValidationMsg').style.color = '#22c55e';
+            await logActivity('PROCESS_DOCUMENT', { service: currentService.name, fileName: fileName });
+        }
+
+        function downloadDocument() {
+            if (!processedDocData) { alert('No processed document available.'); return; }
+            const blob = new Blob([processedDocData], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = processedDocName || 'processed_document.pdf';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        // ================================================================
+        // 13. ADMIN
+        // ================================================================
+        async function loadDashboard() {
+            const services = await db.collection('services').get();
+            const faqs = await db.collection('faq').get();
+            const admins = await db.collection('adminUsers').get();
+            document.getElementById('statsContainer').innerHTML = `
+                    <div class="stat-card"><h3>${services.size}</h3><p>Services</p></div>
+                    <div class="stat-card"><h3>${faqs.size}</h3><p>FAQs</p></div>
+                    <div class="stat-card"><h3>${admins.size}</h3><p>Admins</p></div>
+                `;
+            const logs = await db.collection('activityLogs').orderBy('timestamp', 'desc').limit(5).get();
+            let html = '';
+            logs.forEach(d => { const data = d.data();
+                html +=
+                    `<p>🔹 ${data.action} - ${data.adminEmail} (${data.timestamp?.toDate?.()?.toLocaleTimeString() || 'now'})</p>`; });
+            document.getElementById('recentLogs').innerHTML = html || 'No activity.';
+        }
+
+        function loadServicesTable() {
+            db.collection('services').onSnapshot((snap) => {
+                let html =
+                    `<table><tr><th>Name</th><th>Status</th><th>Authorities</th><th>Photo</th><th>Actions</th></tr>`;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const statusBadge = d.status ? '<span style="color:#22c55e;">● Active</span>' :
+                        '<span style="color:#ef4444;">● Inactive</span>';
+                    html += `<tr>
+                            <td><strong>${d.name}</strong></td>
+                            <td>${statusBadge}</td>
+                            <td>${(d.authorities || []).join(', ')}</td>
+                            <td>${d.photo?.width || 'N/A'}×${d.photo?.height || ''}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" onclick="editService('${doc.id}')"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteService('${doc.id}')"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`;
+                });
+                document.getElementById('servicesTableWrap').innerHTML = html + `</table>`;
+            });
+        }
+
+        function openServiceModal(data = null) {
+            const modal = document.getElementById('serviceModal');
+            modal.classList.add('active');
+            const reset = () => {
+                document.getElementById('editServiceId').value = '';
+                document.getElementById('s_name').value = '';
+                document.getElementById('s_icon').value = 'fa-id-card';
+                document.getElementById('s_authorities').value = '';
+                document.getElementById('s_status').checked = true;
+                document.getElementById('s_instructions').value = '';
+                document.getElementById('s_notes').value = '';
+                document.getElementById('s_autoResize').checked = true;
+                document.getElementById('s_autoCompress').checked = true;
+                document.getElementById('s_autoConvert').checked = true;
+                document.getElementById('s_maintainAspect').checked = true;
+                document.getElementById('s_forceWhiteBg').checked = false;
+                ['photo', 'sig', 'thumb', 'doc'].forEach(p => {
+                    document.getElementById(`s_${p}_width`).value = '';
+                    document.getElementById(`s_${p}_height`).value = '';
+                    document.getElementById(`s_${p}_minKB`).value = '';
+                    document.getElementById(`s_${p}_maxKB`).value = '';
+                    document.getElementById(`s_${p}_minW`).value = '';
+                    document.getElementById(`s_${p}_maxW`).value = '';
+                    document.getElementById(`s_${p}_minH`).value = '';
+                    document.getElementById(`s_${p}_maxH`).value = '';
+                    document.getElementById(`s_${p}_formats`).value = '';
+                    document.getElementById(`s_${p}_mimeTypes`).value = '';
+                });
+                document.getElementById('s_photo_bg').value = '';
+                document.getElementById('s_doc_maxSize').value = '';
+                document.getElementById('s_doc_formats').value = '';
+                document.getElementById('s_doc_multiple').checked = false;
+                document.getElementById('s_doc_instructions').value = '';
+            };
+            if (data) {
+                document.getElementById('serviceModalTitle').textContent = 'Edit Service';
+                document.getElementById('editServiceId').value = data.id;
+                document.getElementById('s_name').value = data.name || '';
+                document.getElementById('s_icon').value = data.icon || 'fa-id-card';
+                document.getElementById('s_authorities').value = (data.authorities || []).join(', ');
+                document.getElementById('s_status').checked = data.status !== false;
+                document.getElementById('s_instructions').value = data.instructions || '';
+                document.getElementById('s_notes').value = data.notes || '';
+                const p = data.processing || {};
+                document.getElementById('s_autoResize').checked = p.autoResize !== false;
+                document.getElementById('s_autoCompress').checked = p.autoCompress !== false;
+                document.getElementById('s_autoConvert').checked = p.autoConvertFormat !== false;
+                document.getElementById('s_maintainAspect').checked = p.maintainAspectRatio !== false;
+                document.getElementById('s_forceWhiteBg').checked = p.forceWhiteBackground || false;
+                ['photo', 'sig', 'thumb'].forEach(p => {
+                    const obj = data[p] || {};
+                    const fields = ['width', 'height', 'minKB', 'maxKB', 'minW', 'maxW', 'minH', 'maxH',
+                        'formats', 'mimeTypes'
+                    ];
+                    fields.forEach(f => {
+                        const el = document.getElementById(`s_${p}_${f}`);
+                        if (el) el.value = obj[f] !== undefined ? obj[f] : '';
+                    });
+                });
+                document.getElementById('s_photo_bg').value = data.photo?.bg || '';
+                if (data.document) {
+                    document.getElementById('s_doc_maxSize').value = data.document.maxSize || '';
+                    document.getElementById('s_doc_formats').value = (data.document.formats || []).join(', ');
+                    document.getElementById('s_doc_multiple').checked = data.document.multiple || false;
+                    document.getElementById('s_doc_instructions').value = data.document.instructions || '';
+                }
+            } else {
+                document.getElementById('serviceModalTitle').textContent = 'Add Service';
+                reset();
+            }
+        }
+
+        async function saveService() {
+            const id = document.getElementById('editServiceId').value;
+            const getVal = (id) => document.getElementById(id).value;
+            const getNum = (id) => parseFloat(document.getElementById(id).value) || 0;
+            const getArr = (id) => document.getElementById(id).value.split(',').map(s => s.trim()).filter(Boolean);
+            const getBool = (id) => document.getElementById(id).checked;
+
+            const payload = {
+                name: getVal('s_name'),
+                icon: getVal('s_icon'),
+                authorities: getArr('s_authorities'),
+                status: getBool('s_status'),
+                instructions: getVal('s_instructions'),
+                notes: getVal('s_notes'),
+                processing: {
+                    autoResize: getBool('s_autoResize'),
+                    autoCompress: getBool('s_autoCompress'),
+                    autoConvertFormat: getBool('s_autoConvert'),
+                    maintainAspectRatio: getBool('s_maintainAspect'),
+                    forceWhiteBackground: getBool('s_forceWhiteBg')
+                },
+                photo: {
+                    width: getNum('s_photo_width'),
+                    height: getNum('s_photo_height'),
+                    minKB: getNum('s_photo_minKB'),
+                    maxKB: getNum('s_photo_maxKB'),
+                    minW: getNum('s_photo_minW'),
+                    maxW: getNum('s_photo_maxW'),
+                    minH: getNum('s_photo_minH'),
+                    maxH: getNum('s_photo_maxH'),
+                    formats: getArr('s_photo_formats'),
+                    mimeTypes: getArr('s_photo_mimeTypes'),
+                    bg: getVal('s_photo_bg')
+                },
+                signature: {
+                    width: getNum('s_sig_width'),
+                    height: getNum('s_sig_height'),
+                    minKB: getNum('s_sig_minKB'),
+                    maxKB: getNum('s_sig_maxKB'),
+                    minW: getNum('s_sig_minW'),
+                    maxW: getNum('s_sig_maxW'),
+                    minH: getNum('s_sig_minH'),
+                    maxH: getNum('s_sig_maxH'),
+                    formats: getArr('s_sig_formats'),
+                    mimeTypes: getArr('s_sig_mimeTypes')
+                },
+                thumb: {
+                    width: getNum('s_thumb_width'),
+                    height: getNum('s_thumb_height'),
+                    maxKB: getNum('s_thumb_maxKB'),
+                    minW: getNum('s_thumb_minW'),
+                    maxW: getNum('s_thumb_maxW'),
+                    minH: getNum('s_thumb_minH'),
+                    maxH: getNum('s_thumb_maxH'),
+                    formats: getArr('s_thumb_formats'),
+                    mimeTypes: getArr('s_thumb_mimeTypes')
+                },
+                document: {
+                    maxSize: getNum('s_doc_maxSize'),
+                    formats: getArr('s_doc_formats'),
+                    multiple: getBool('s_doc_multiple'),
+                    instructions: getVal('s_doc_instructions')
+                }
+            };
+            if (id) { await db.collection('services').doc(id).update(payload);
+                await logActivity('UPDATE_SERVICE', { id }); } else { await db.collection('services').add(payload);
+                await logActivity('ADD_SERVICE', { name: payload.name }); }
+            closeModal('serviceModal');
+        }
+
+        async function editService(id) {
+            const doc = await db.collection('services').doc(id).get();
+            openServiceModal({ id, ...doc.data() });
+        }
+
+        async function deleteService(id) {
+            if (!confirm('Delete this service?')) return;
+            await db.collection('services').doc(id).delete();
+            await logActivity('DELETE_SERVICE', { id });
+        }
+
+        // FAQ
+        function loadFaqsTable() {
+            db.collection('faq').onSnapshot((snap) => {
+                let html = `<table><tr><th>Question</th><th>Actions</th></tr>`;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    html += `<tr><td>${d.question}</td>
+                            <td><button class="btn btn-warning btn-sm" onclick="editFaq('${doc.id}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteFaq('${doc.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                });
+                document.getElementById('faqTableWrap').innerHTML = html + `</table>`;
+            });
+        }
+
+        function openFaqModal(q = '', a = '', id = '') {
+            document.getElementById('faqModal').classList.add('active');
+            document.getElementById('editFaqId').value = id;
+            document.getElementById('f_question').value = q;
+            document.getElementById('f_answer').value = a;
+            document.getElementById('faqModalTitle').textContent = id ? 'Edit FAQ' : 'Add FAQ';
+        }
+
+        function editFaq(id) { db.collection('faq').doc(id).get().then(doc => { const d = doc.data();
+                openFaqModal(d.question, d.answer, id); }); }
+
+        async function saveFaq() {
+            const id = document.getElementById('editFaqId').value;
+            const data = { question: document.getElementById('f_question').value, answer: document.getElementById(
+                    'f_answer').value };
+            if (id) { await db.collection('faq').doc(id).update(data);
+                await logActivity('UPDATE_FAQ', { id }); } else { await db.collection('faq').add(data);
+                await logActivity('ADD_FAQ', { q: data.question }); }
+            closeModal('faqModal');
+        }
+
+        async function deleteFaq(id) { if (confirm('Delete?')) { await db.collection('faq').doc(id).delete();
+                await logActivity('DELETE_FAQ', { id }); } }
+
+        // Updates
+        function loadUpdatesTable() {
+            db.collection('updates').orderBy('date', 'desc').onSnapshot((snap) => {
+                let html = `<table><tr><th>Title</th><th>Date</th><th>Actions</th></tr>`;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    html += `<tr><td>${d.title}</td><td>${d.date || ''}</td>
+                            <td><button class="btn btn-danger btn-sm" onclick="deleteUpdate('${doc.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                });
+                document.getElementById('updatesTableWrap').innerHTML = html + `</table>`;
+            });
+        }
+
+        function openUpdateModal() {
+            document.getElementById('updateModal').classList.add('active');
+            document.getElementById('editUpdateId').value = '';
+            document.getElementById('u_title').value = '';
+            document.getElementById('u_description').value = '';
+            document.getElementById('u_date').value = new Date().toISOString().split('T')[0];
+        }
+
+        async function saveUpdate() {
+            const data = {
+                title: document.getElementById('u_title').value,
+                description: document.getElementById('u_description').value,
+                date: document.getElementById('u_date').value || new Date().toISOString().split('T')[0]
+            };
+            await db.collection('updates').add(data);
+            await logActivity('ADD_UPDATE', { title: data.title });
+            closeModal('updateModal');
+        }
+
+        async function deleteUpdate(id) { if (confirm('Delete?')) { await db.collection('updates').doc(id).delete();
+                await logActivity('DELETE_UPDATE', { id }); } }
+
+        // Logs
+        async function loadLogs() {
+            const snap = await db.collection('activityLogs').orderBy('timestamp', 'desc').limit(100).get();
+            let html = `<table><tr><th>Admin</th><th>Action</th><th>Time</th></tr>`;
+            snap.forEach(d => {
+                const data = d.data();
+                html +=
+                    `<tr><td>${data.adminEmail}</td><td>${data.action}</td><td>${data.timestamp?.toDate?.()?.toLocaleString() || 'now'}</td></tr>`;
+            });
+            document.getElementById('logsTableWrap').innerHTML = html + `</table>`;
+        }
+
+        // ================================================================
+        // 14. UTILITIES
+        // ================================================================
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
+        });
+
+        // ================================================================
+        // 15. INIT
+        // ================================================================
+        auth.onAuthStateChanged(async (user) => {
+            await seedDefaultServices();
+            if (user && user.uid === ADMIN_UID) {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainSite').style.display = 'none';
+                document.getElementById('adminApp').style.display = 'block';
+                loadDashboard();
+                loadServicesTable();
+                loadFaqsTable();
+                loadUpdatesTable();
+                loadLogs();
+            } else if (user && user.uid !== ADMIN_UID) {
+                auth.signOut();
+                document.getElementById('loginPage').style.display = 'flex';
+                document.getElementById('mainSite').style.display = 'block';
+                document.getElementById('adminApp').style.display = 'none';
+            } else {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainSite').style.display = 'block';
+                document.getElementById('adminApp').style.display = 'none';
+            }
+            loadMainServices();
+            loadMainFaq();
+            loadMainUpdates();
+        });
+    </script>
+
+</body>
+
+</html>
